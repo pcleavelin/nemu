@@ -1,9 +1,11 @@
+use instr::ReadMem;
+
 pub mod bitflag;
 pub mod cpu;
 pub mod instr;
 
 pub struct Snapshot<'machine> {
-    pub next_instr: instr::InstructionGroup,
+    pub next_instr: Option<instr::Instruction>,
     pub registers: cpu::CpuRegisters,
     pub mem_block: &'machine [u8],
 }
@@ -54,13 +56,19 @@ impl Machine {
     }
 
     pub fn snapshot(&self) -> Snapshot {
-        let next_instr = instr::InstructionGroup::from_iter(cpu::MemIter::new(
+        let parsed_instr = match instr::Instruction::read(cpu::MemIter::new(
             self.cpu.registers.instruction_pointer as usize,
             self.cpu.mem.as_slice(),
-        ));
+        )) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                eprintln!("{e}");
+                None
+            }
+        };
 
         Snapshot {
-            next_instr,
+            next_instr: parsed_instr.map(|parsed| parsed.instr),
             registers: self.cpu.registers,
             mem_block: self.cpu.mem.as_slice(),
         }
@@ -69,7 +77,17 @@ impl Machine {
 
 #[cfg(test)]
 mod tests {
-    use crate::Machine;
+    use super::*;
+
+    #[test]
+    fn mem_wrap_around_proper_delta_ip() {
+        let mut machine = Machine::new();
+
+        machine.cpu.registers.instruction_pointer = 0xFFFF_FFFF;
+        machine.run_cycle();
+
+        assert_eq!(machine.cpu.registers.instruction_pointer, 0);
+    }
 
     #[test]
     fn idk() {
@@ -77,6 +95,11 @@ mod tests {
 
         // machine.run_cycle();
         machine.cpu.registers.a = 0xFFF1_1FFF;
+
+        machine.cpu.mem[0] = 0x1;
+        machine.cpu.mem[1] = 0x8;
+        machine.cpu.mem[2] = 0x0;
+        machine.cpu.mem[3] = 0x2;
 
         let pretty = machine.snapshot().pretty();
 

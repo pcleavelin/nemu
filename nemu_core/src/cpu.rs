@@ -1,12 +1,15 @@
 //! Main CPU related logic/data structures
 
-use crate::{bitflag::Bitflag, instr::InstructionGroup};
+use crate::{
+    bitflag::Bitflag,
+    instr::{Instruction, ReadMem},
+};
 
 const MAX_MEM: usize = 0x1000_0000;
 
 pub const ZERO: u8 = 0b0000_0001;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Register {
     A,
     B,
@@ -90,6 +93,16 @@ impl Cpu {
         let ip = self.registers.instruction_pointer as usize;
 
         // TODO: this needs to increment IP
-        let instr = InstructionGroup::from_iter(MemIter::new(ip, self.mem.as_slice()));
+        let parsed_instr = Instruction::read(MemIter::new(ip, self.mem.as_slice()));
+
+        match parsed_instr {
+            Ok(parsed) => {
+                self.registers.instruction_pointer = self
+                    .registers
+                    .instruction_pointer
+                    .wrapping_add(parsed.delta_ip);
+            }
+            Err(e) => eprintln!("{e}"),
+        }
     }
 }
