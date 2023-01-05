@@ -9,8 +9,6 @@ use crate::{
 
 const MAX_MEM: usize = 0x1000_0000;
 
-pub const ZERO: u8 = 0b0000_0001;
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Register {
     A,
@@ -140,7 +138,6 @@ impl Cpu {
     pub fn cycle(&mut self) {
         let ip = self.registers.instruction_pointer as usize;
 
-        // TODO: this needs to increment IP
         let parsed_instr = Instruction::read(MemIterator::new(ip, self.mem.as_slice()));
 
         match parsed_instr {
