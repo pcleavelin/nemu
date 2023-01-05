@@ -56,7 +56,7 @@ impl Machine {
     }
 
     pub fn snapshot(&self) -> Snapshot {
-        let parsed_instr = match instr::Instruction::read(cpu::MemIter::new(
+        let parsed_instr = match instr::Instruction::read(cpu::MemIterator::new(
             self.cpu.registers.instruction_pointer as usize,
             self.cpu.mem.as_slice(),
         )) {
@@ -89,20 +89,20 @@ mod tests {
         assert_eq!(machine.cpu.registers.instruction_pointer, 0);
     }
 
-    #[test]
-    fn idk() {
-        let mut machine = Machine::new();
+    // #[test]
+    // fn idk() {
+    //     let mut machine = Machine::new();
 
-        // machine.run_cycle();
-        machine.cpu.registers.a = 0xFFF1_1FFF;
+    //     // machine.run_cycle();
+    //     machine.cpu.registers.a = 0xFFF1_1FFF;
 
-        machine.cpu.mem[0] = 0x1;
-        machine.cpu.mem[1] = 0x8;
-        machine.cpu.mem[2] = 0x0;
-        machine.cpu.mem[3] = 0x2;
+    //     machine.cpu.mem[0] = 0x1;
+    //     machine.cpu.mem[1] = 0x8;
+    //     machine.cpu.mem[2] = 0x0;
+    //     machine.cpu.mem[3] = 0x2;
 
-        let pretty = machine.snapshot().pretty();
+    //     let pretty = machine.snapshot().pretty();
 
-        panic!("{pretty}");
-    }
+    //     panic!("{pretty}");
+    // }
 }
