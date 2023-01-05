@@ -1,3 +1,5 @@
+// Copyright (C) 2023  Patrick Cleavelin <patrick@spacegirl.nl>
+
 use instr::ReadMem;
 
 pub mod bitflag;

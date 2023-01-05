@@ -1,3 +1,5 @@
+// Copyright (C) 2023  Patrick Cleavelin <patrick@spacegirl.nl>
+
 //! Main CPU related logic/data structures
 
 use crate::{

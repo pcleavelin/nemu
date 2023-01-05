@@ -1,3 +1,5 @@
+// Copyright (C) 2023  Patrick Cleavelin <patrick@spacegirl.nl>
+
 #[derive(Default, Clone, Copy)]
 pub struct Bitflag<T> {
     value: T,
