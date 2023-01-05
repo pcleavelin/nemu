@@ -52,6 +52,9 @@ impl ReadMem for Instruction {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Move {
     RegToReg(Register, Register),
+    ImmToReg32(u32, Register),
+    ImmToReg16(u16, Register),
+    ImmToReg8(u8, Register),
 
     RegToMem32(Register, u32),
     RegToMem16(Register, u32),
@@ -74,14 +77,19 @@ impl ReadMem for Move {
 
         match (move_group & 0xC0) >> 6 {
             0 => {
-                let operand_src = iter.next8();
-                let operand_dest = iter.next8();
-
-                let reg_src = Register::try_from_id(operand_src)?;
-                let reg_dst = Register::try_from_id(operand_dest)?;
+                let move_instr = match (move_group & 0x30) >> 4 {
+                    0 => Self::RegToReg(
+                        Register::try_from_id(iter.next8())?,
+                        Register::try_from_id(iter.next8())?,
+                    ),
+                    1 => Self::ImmToReg8(iter.next8(), Register::try_from_id(iter.next8())?),
+                    2 => Self::ImmToReg16(iter.next16(), Register::try_from_id(iter.next8())?),
+                    3 => Self::ImmToReg32(iter.next32(), Register::try_from_id(iter.next8())?),
+                    _ => unreachable!("there only can be 4 possiblities"),
+                };
 
                 Ok(ParsedInstruction {
-                    instr: Instruction::Move(Self::RegToReg(reg_src, reg_dst)),
+                    instr: Instruction::Move(move_instr),
                     delta_ip: iter.travelled() as u32,
                 })
             }
@@ -152,6 +160,9 @@ mod tests {
         #[test]
         fn read_mem() {
             let reg_to_reg = vec![0b0000_0000u8, 0, 0];
+            let imm_to_reg32 = vec![0b0011_0000u8, 0, 0, 0, 0, 0];
+            let imm_to_reg16 = vec![0b0010_0000u8, 0, 0, 0];
+            let imm_to_reg8 = vec![0b0001_0000u8, 0, 0];
 
             let reg_to_mem32 = vec![0b0110_0000u8, 0, 0, 0, 0, 0];
             let reg_to_mem16 = vec![0b0101_0000u8, 0, 0, 0, 0, 0];
@@ -167,6 +178,12 @@ mod tests {
 
             let reg_to_reg_instr =
                 Move::read(MemIterator::new(0, reg_to_reg.as_slice())).expect("should read");
+            let imm_to_reg32_instr =
+                Move::read(MemIterator::new(0, imm_to_reg32.as_slice())).expect("should read");
+            let imm_to_reg16_instr =
+                Move::read(MemIterator::new(0, imm_to_reg16.as_slice())).expect("should read");
+            let imm_to_reg8_instr =
+                Move::read(MemIterator::new(0, imm_to_reg8.as_slice())).expect("should read");
             let reg_to_mem32_instr =
                 Move::read(MemIterator::new(0, reg_to_mem32.as_slice())).expect("should read");
             let reg_to_mem16_instr =
@@ -189,6 +206,18 @@ mod tests {
             assert_eq!(
                 reg_to_reg_instr.instr,
                 Instruction::Move(Move::RegToReg(Register::A, Register::A))
+            );
+            assert_eq!(
+                imm_to_reg32_instr.instr,
+                Instruction::Move(Move::ImmToReg32(0, Register::A))
+            );
+            assert_eq!(
+                imm_to_reg16_instr.instr,
+                Instruction::Move(Move::ImmToReg16(0, Register::A))
+            );
+            assert_eq!(
+                imm_to_reg8_instr.instr,
+                Instruction::Move(Move::ImmToReg8(0, Register::A))
             );
             assert_eq!(
                 reg_to_mem32_instr.instr,
@@ -239,6 +268,39 @@ mod tests {
 
             assert_eq!(machine.cpu.registers.a, machine.cpu.registers.b);
             assert_eq!(machine.cpu.registers.b, 42);
+        }
+
+        #[test]
+        fn move_imm_to_reg32() {
+            let mut machine = Machine::new();
+            let instr = Instruction::Move(Move::ImmToReg32(0, Register::A));
+            machine.cpu.registers.a = 0xFFFF_FFFF;
+
+            machine.cpu.do_instruction(instr);
+
+            assert_eq!(machine.cpu.registers.a, 0);
+        }
+
+        #[test]
+        fn move_imm_to_reg16() {
+            let mut machine = Machine::new();
+            let instr = Instruction::Move(Move::ImmToReg16(0, Register::A));
+            machine.cpu.registers.a = 0xFFFF_FFFF;
+
+            machine.cpu.do_instruction(instr);
+
+            assert_eq!(machine.cpu.registers.a, 0xFFFF_0000);
+        }
+
+        #[test]
+        fn move_imm_to_reg8() {
+            let mut machine = Machine::new();
+            let instr = Instruction::Move(Move::ImmToReg8(0, Register::A));
+            machine.cpu.registers.a = 0xFFFF_FFFF;
+
+            machine.cpu.do_instruction(instr);
+
+            assert_eq!(machine.cpu.registers.a, 0xFFFF_FF00);
         }
 
         #[test]

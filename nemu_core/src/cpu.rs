@@ -165,6 +165,16 @@ impl Cpu {
             instr::Move::RegToReg(reg_src, reg_dst) => {
                 self.set_reg32(reg_dst, self.get_reg(reg_src));
             }
+            instr::Move::ImmToReg32(imm, reg_dst) => {
+                self.set_reg32(reg_dst, imm);
+            }
+            instr::Move::ImmToReg16(imm, reg_dst) => {
+                self.set_reg16(reg_dst, imm);
+            }
+            instr::Move::ImmToReg8(imm, reg_dst) => {
+                self.set_reg8(reg_dst, imm);
+            }
+
             instr::Move::RegToMem32(reg_src, addr) => {
                 self.write_mem32(addr, self.get_reg(reg_src));
             }
